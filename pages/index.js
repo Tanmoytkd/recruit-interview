@@ -1,9 +1,9 @@
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 import styles from "../styles/Snake.module.css";
 import Cell from "../components/cell";
 import CellType from "../types/cellType";
-import Direction, { getNextCell, oppositeDirection } from "../types/direction";
+import Direction, { chooseNextDirection, getNextCell } from "../types/direction";
 
 const Config = {
   height: 25,
@@ -22,103 +22,115 @@ const Snake = () => {
     { x: 7, y: 12 },
     { x: 6, y: 12 },
   ];
-  // const grid = useRef();
 
-  // snake[0] is head and snake[snake.length - 1] is tail
-  const [snake, setSnake] = useState(getDefaultSnake());
-  const [direction, setDirection] = useState(Direction.Right);
+  const initialSnakeState = {
+    snake: getDefaultSnake(),
+    direction: Direction.Right,
+    score: 0
+  };
+
+  const isFoodCell = ({ x, y }) => food?.x === x && food?.y === y;
+
+  const isSnakeCell = ({ x, y }) =>
+    snakeState.snake.find((position) => position.x === x && position.y === y);
+
+  function isInvalidSnake(snake) {
+    const head = snake[0];
+
+    return snake.slice(1).find((position) => position.x === head.x && position.y === head.y);
+  }
+
+  const getNextSnake = (snake, direction) => {
+    const head = snake[0];
+    const newHead = getNextCell(head, direction, Config);
+
+    const newSnake = [newHead, ...snake];
+
+    // remove tail
+    if (!isFoodCell(newHead)) {
+      newSnake.pop();
+    }
+
+    return newSnake;
+  };
 
   const [food, setFood] = useState({ x: 4, y: 10 });
-  const [score, setScore] = useState(0);
+  const [snakeState, snakeStateDispatch] = useReducer((state, action) => {
+    switch (action.type) {
+      case 'moveSnake':
+        return { ...state, snake: getNextSnake(state.snake, state.direction) }
+      case 'increaseScore':
+        return { ...state, score: state.score + 1 };
+      case 'changeDirection':
+        return { ...state, direction: chooseNextDirection(state.direction, action.direction) };
+      case 'reset':
+        return initialSnakeState;
+      default:
+        return state;
+    }
+  }, initialSnakeState);
 
   // move the snake
   useEffect(() => {
     const runSingleStep = () => {
-      setSnake((snake) => {
-        const head = snake[0];
-        const newHead = getNextCell(head, direction, Config);
-
-        // make a new snake by extending head
-        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Spread_syntax
-        const newSnake = [newHead, ...snake];
-
-        // remove tail
-        if (!isFood(newHead)) {
-          newSnake.pop();
-        }
-
-        return newSnake;
-      });
+      snakeStateDispatch({ type: 'moveSnake' });
     };
 
     runSingleStep();
     const timer = setInterval(runSingleStep, 500);
 
     return () => clearInterval(timer);
-  }, [direction, food]);
+  }, [snakeState.direction, food]);
 
   // update score whenever head touches a food
   useEffect(() => {
-    const head = snake[0];
-    if (isFood(head)) {
-      setScore((score) => {
-        return score + 1;
-      });
+    const head = snakeState.snake[0];
+    if (isFoodCell(head)) {
+      snakeStateDispatch({ type: 'increaseScore' });
 
       let newFood = getRandomCell();
-      while (isSnake(newFood)) {
+      while (isSnakeCell(newFood)) {
         newFood = getRandomCell();
       }
 
       setFood(newFood);
+    } else if (isInvalidSnake(snakeState.snake)) {
+      snakeStateDispatch({ type: 'reset' });
     }
-  }, [snake]);
+  }, [snakeState.snake]);
 
   useEffect(() => {
     const handleNavigation = (event) => {
-      let newDirection = direction;
-
       switch (event.key) {
         case "ArrowUp":
-          newDirection = Direction.Top;
+          snakeStateDispatch({ type: 'changeDirection', direction: Direction.Top });
           break;
 
         case "ArrowDown":
-          newDirection = Direction.Bottom;
+          snakeStateDispatch({ type: 'changeDirection', direction: Direction.Bottom });
           break;
 
         case "ArrowLeft":
-          newDirection = Direction.Left;
+          snakeStateDispatch({ type: 'changeDirection', direction: Direction.Left });
           break;
 
         case "ArrowRight":
-          newDirection = Direction.Right;
+          snakeStateDispatch({ type: 'changeDirection', direction: Direction.Right });
           break;
       }
-
-      setDirection((direction) => {
-        return (newDirection !== oppositeDirection(direction)) ? newDirection : direction;
-      });
     };
     window.addEventListener("keydown", handleNavigation);
 
     return () => window.removeEventListener("keydown", handleNavigation);
   }, []);
 
-  // ?. is called optional chaining
-  // see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Optional_chaining
-  const isFood = ({ x, y }) => food?.x === x && food?.y === y;
-
-  const isSnake = ({ x, y }) =>
-    snake.find((position) => position.x === x && position.y === y);
-
   const cells = [];
   for (let x = 0; x < Config.width; x++) {
     for (let y = 0; y < Config.height; y++) {
       let type = CellType.Empty;
-      if (isFood({ x, y })) {
+      if (isFoodCell({ x, y })) {
         type = CellType.Food;
-      } else if (isSnake({ x, y })) {
+      } else if (isSnakeCell({ x, y })) {
         type = CellType.Snake;
       }
       cells.push(<Cell key={`${x}-${y}`} x={x} y={y} type={type} cellSize={Config.cellSize} />);
@@ -131,7 +143,7 @@ const Snake = () => {
         className={styles.header}
         style={{ width: Config.width * Config.cellSize }}
       >
-        Score: {score}
+        Score: {snakeState.score}
       </div>
       <div
         className={styles.grid}

@@ -23,4 +23,8 @@ export function getNextCell({ x, y }, direction, { height, width }) {
     return { x: nextX, y: nextY }
 }
 
+export function chooseNextDirection(currentDirection, newDirection) {
+    return (newDirection !== oppositeDirection(currentDirection)) ? newDirection : currentDirection;
+}
+
 export default Direction;
