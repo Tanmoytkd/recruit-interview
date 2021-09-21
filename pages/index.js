@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import styles from "../styles/Snake.module.css";
 import Cell from "../components/cell";
 import CellType from "../types/cellType";
-import Direction, { oppositeDirection } from "../types/direction";
+import Direction, { getNextCell, oppositeDirection } from "../types/direction";
 
 const Config = {
   height: 25,
@@ -36,7 +36,7 @@ const Snake = () => {
     const runSingleStep = () => {
       setSnake((snake) => {
         const head = snake[0];
-        const newHead = { x: head.x + direction.x, y: head.y + direction.y };
+        const newHead = getNextCell(head, direction, Config);
 
         // make a new snake by extending head
         // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Spread_syntax
