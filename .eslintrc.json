@@ -1,5 +1,5 @@
 {
-  "extends": ["eslint:recommended", "next", "next/core-web-vitals"],
+  "extends": ["eslint:recommended", "next", "next/core-web-vitals", "plugin:jest/recommended"],
   "env": {
     "es6": true,
     "browser": true,
