@@ -1,6 +1,8 @@
 import dynamic from "next/dynamic";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import styles from "../styles/Snake.module.css";
+import Cell from "../components/cell";
+import CellType from "../types/cellType";
 
 const Config = {
   height: 25,
@@ -8,54 +10,11 @@ const Config = {
   cellSize: 32,
 };
 
-const CellType = {
-  Snake: "snake",
-  Food: "food",
-  Empty: "empty",
-};
-
 const Direction = {
   Left: { x: -1, y: 0 },
   Right: { x: 1, y: 0 },
   Top: { x: 0, y: -1 },
   Bottom: { x: 0, y: 1 },
-};
-
-const Cell = ({ x, y, type }) => {
-  const getStyles = () => {
-    switch (type) {
-      case CellType.Snake:
-        return {
-          backgroundColor: "yellowgreen",
-          borderRadius: 8,
-          padding: 2,
-        };
-
-      case CellType.Food:
-        return {
-          backgroundColor: "darkorange",
-          borderRadius: 20,
-          width: 32,
-          height: 32,
-        };
-
-      default:
-        return {};
-    }
-  };
-  return (
-    <div
-      className={styles.cellContainer}
-      style={{
-        left: x * Config.cellSize,
-        top: y * Config.cellSize,
-        width: Config.cellSize,
-        height: Config.cellSize,
-      }}
-    >
-      <div className={styles.cell} style={getStyles()}></div>
-    </div>
-  );
 };
 
 const getRandomCell = () => ({
@@ -69,7 +28,7 @@ const Snake = () => {
     { x: 7, y: 12 },
     { x: 6, y: 12 },
   ];
-  const grid = useRef();
+  // const grid = useRef();
 
   // snake[0] is head and snake[snake.length - 1] is tail
   const [snake, setSnake] = useState(getDefaultSnake());
@@ -160,7 +119,7 @@ const Snake = () => {
       } else if (isSnake({ x, y })) {
         type = CellType.Snake;
       }
-      cells.push(<Cell key={`${x}-${y}`} x={x} y={y} type={type} />);
+      cells.push(<Cell key={`${x}-${y}`} x={x} y={y} type={type} cellSize={Config.cellSize} />);
     }
   }
 
