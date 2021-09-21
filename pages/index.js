@@ -49,7 +49,9 @@ const Snake = () => {
         const newSnake = [newHead, ...snake];
 
         // remove tail
-        newSnake.pop();
+        if (!isFood(newHead)) {
+          newSnake.pop();
+        }
 
         return newSnake;
       });
