@@ -23,16 +23,36 @@ const Snake = () => {
     { x: 6, y: 12 },
   ];
 
-  const initialSnakeState = {
+  const initialGameState = {
     snake: getDefaultSnake(),
     direction: Direction.Right,
     score: 0
   };
 
-  const isFoodCell = ({ x, y }) => food?.x === x && food?.y === y;
+  const [foods, setFoods] = useState([]);
 
-  const isSnakeCell = ({ x, y }) =>
-    snakeState.snake.find((position) => position.x === x && position.y === y);
+  const [snakeState, snakeStateDispatch] = useReducer((gameState, action) => {
+    switch (action.type) {
+      case 'moveSnake':
+        return { ...gameState, snake: getNextSnake(gameState.snake, gameState.direction) }
+      case 'increaseScore':
+        return { ...gameState, score: gameState.score + 1 };
+      case 'changeDirection':
+        return { ...gameState, direction: chooseNextDirection(gameState.direction, action.direction) };
+      case 'reset':
+        return initialGameState;
+      default:
+        return gameState;
+    }
+  }, initialGameState);
+
+  function isFoodCell ({ x, y }) {
+    return foods.find(food => food?.x === x && food?.y === y);
+  }
+
+  function isSnakeCell ({ x, y }) {
+    return snakeState.snake.find((position) => position.x === x && position.y === y);
+  }
 
   function isInvalidSnake(snake) {
     const head = snake[0];
@@ -40,7 +60,7 @@ const Snake = () => {
     return snake.slice(1).find((position) => position.x === head.x && position.y === head.y);
   }
 
-  const getNextSnake = (snake, direction) => {
+  function getNextSnake (snake, direction) {
     const head = snake[0];
     const newHead = getNextCell(head, direction, Config);
 
@@ -52,23 +72,15 @@ const Snake = () => {
     }
 
     return newSnake;
-  };
+  }
 
-  const [food, setFood] = useState({ x: 4, y: 10 });
-  const [snakeState, snakeStateDispatch] = useReducer((state, action) => {
-    switch (action.type) {
-      case 'moveSnake':
-        return { ...state, snake: getNextSnake(state.snake, state.direction) }
-      case 'increaseScore':
-        return { ...state, score: state.score + 1 };
-      case 'changeDirection':
-        return { ...state, direction: chooseNextDirection(state.direction, action.direction) };
-      case 'reset':
-        return initialSnakeState;
-      default:
-        return state;
-    }
-  }, initialSnakeState);
+  function addFood(newFood) {
+    setFoods(foods => [...foods, newFood]);
+  }
+
+  const removeFoodIfExists = (foodToRemove) => {
+    setFoods((foods) => foods.filter(food => !(food.x === foodToRemove.x && food.y === foodToRemove.y)))
+  }
 
   // move the snake
   useEffect(() => {
@@ -80,23 +92,20 @@ const Snake = () => {
     const timer = setInterval(runSingleStep, 500);
 
     return () => clearInterval(timer);
-  }, [snakeState.direction, food]);
+  }, [snakeState.direction]);
 
   // update score whenever head touches a food
   useEffect(() => {
     const head = snakeState.snake[0];
-    if (isFoodCell(head)) {
-      snakeStateDispatch({ type: 'increaseScore' });
 
-      let newFood = getRandomCell();
-      while (isSnakeCell(newFood)) {
-        newFood = getRandomCell();
-      }
-
-      setFood(newFood);
-    } else if (isInvalidSnake(snakeState.snake)) {
+    if (isInvalidSnake(snakeState.snake)) {
       snakeStateDispatch({ type: 'reset' });
+
+    } else if (isFoodCell(head)) {
+      snakeStateDispatch({ type: 'increaseScore' });
+      removeFoodIfExists(head);
     }
+
   }, [snakeState.snake]);
 
   useEffect(() => {
@@ -121,7 +130,23 @@ const Snake = () => {
     };
     window.addEventListener("keydown", handleNavigation);
 
-    return () => window.removeEventListener("keydown", handleNavigation);
+    const createNewFood = () => {
+      let newFood = getRandomCell();
+      while (isSnakeCell(newFood) || isFoodCell(newFood)) {
+        newFood = getRandomCell();
+      }
+
+      setTimeout(() => removeFoodIfExists(newFood), 10000);
+      addFood(newFood);
+    };
+
+    createNewFood();
+    const foodGeneratorInterval = setInterval(createNewFood, 3000);
+
+    return () => {
+      window.removeEventListener("keydown", handleNavigation);
+      clearInterval(foodGeneratorInterval);
+    }
   }, []);
 
   const cells = [];
