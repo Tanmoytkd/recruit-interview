@@ -3,18 +3,12 @@ import { useEffect, useState } from "react";
 import styles from "../styles/Snake.module.css";
 import Cell from "../components/cell";
 import CellType from "../types/cellType";
+import Direction, { oppositeDirection } from "../types/direction";
 
 const Config = {
   height: 25,
   width: 25,
   cellSize: 32,
-};
-
-const Direction = {
-  Left: { x: -1, y: 0 },
-  Right: { x: 1, y: 0 },
-  Top: { x: 0, y: -1 },
-  Bottom: { x: 0, y: 1 },
 };
 
 const getRandomCell = () => ({
@@ -82,23 +76,29 @@ const Snake = () => {
 
   useEffect(() => {
     const handleNavigation = (event) => {
+      let newDirection = direction;
+
       switch (event.key) {
         case "ArrowUp":
-          setDirection(Direction.Top);
+          newDirection = Direction.Top;
           break;
 
         case "ArrowDown":
-          setDirection(Direction.Bottom);
+          newDirection = Direction.Bottom;
           break;
 
         case "ArrowLeft":
-          setDirection(Direction.Left);
+          newDirection = Direction.Left;
           break;
 
         case "ArrowRight":
-          setDirection(Direction.Right);
+          newDirection = Direction.Right;
           break;
       }
+
+      setDirection((direction) => {
+        return (newDirection !== oppositeDirection(direction)) ? newDirection : direction;
+      });
     };
     window.addEventListener("keydown", handleNavigation);
 
