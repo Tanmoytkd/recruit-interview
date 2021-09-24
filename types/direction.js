@@ -17,7 +17,7 @@ export function oppositeDirection(direction) {
     }
 }
 
-export function getNextCell({ x, y }, direction, { height, width }) {
+export function getNextCell({ x, y }, direction, height, width) {
     let nextX = (x + direction.x + width) % width;
     let nextY = (y + direction.y + height) % height;
     return { x: nextX, y: nextY }

@@ -1,26 +1,55 @@
 import Direction, { chooseNextDirection, getNextCell } from "../types/direction";
 import { useEffect, useReducer, useRef, useState } from "react";
+import CellType from "../types/cellType";
 
-function useSnakeGameLogic(config) {
-    const getRandomCell = () => ({
-        x: Math.floor(Math.random() * config.width),
-        y: Math.floor(Math.random() * config.height),
-    });
+function getCellType(grid, {x, y}) {
+    return grid.current[x][y].type;
+}
 
-    const getDefaultSnake = () => [
-        { x: 2, y: 3 },
-        { x: 1, y: 3 },
-        { x: 0, y: 3 },
-    ];
+function useFoodsLogic(grid, foodGenerationInterval, foodLifetime) {
+    const [foods, setFoods] = useState([]);
+    const foodId = useRef(0);
 
+    const removeFoodIfExists = (foodToRemove) => {
+        setFoods((foods) => foods.filter(food => !(food.id === foodToRemove.id)));
+    }
+
+    useEffect(() => {
+        const createNewFood = () => {
+            let newFood = getRandomCell(grid.current.width, grid.current.height);
+
+            while ([CellType.Food, CellType.Snake].includes(getCellType(grid, newFood))) {
+                newFood = getRandomCell(grid.current.width, grid.current.height);
+            }
+
+            newFood.id = foodId.current;
+            foodId.current += 1;
+
+            setTimeout(() => removeFoodIfExists(newFood), foodLifetime);
+            setFoods(foods => [...foods, newFood]);
+        };
+
+        createNewFood();
+        const foodGeneratorInterval = setInterval(createNewFood, foodGenerationInterval);
+
+        return () => {
+            clearInterval(foodGeneratorInterval);
+        }
+    }, []);
+
+    return [foods, removeFoodIfExists];
+}
+
+function useSnakeGameLogic(defaultSnake, {width, height, foodLifetime, foodGenerationInterval}) {
     const initialGameState = {
-        snake: getDefaultSnake(),
+        snake: defaultSnake,
         direction: Direction.Right,
         score: 0
     };
 
-    const [foods, setFoods] = useState([]);
-    const foodId = useRef(0);
+    const grid = useRef(makeGrid(width, height));
+
+    const [foods, removeFoodIfExists] = useFoodsLogic(grid, foodGenerationInterval, foodLifetime);
 
     const [snakeState, snakeStateDispatch] = useReducer((gameState, action) => {
         switch (action.type) {
@@ -31,14 +60,18 @@ function useSnakeGameLogic(config) {
             case 'changeDirection':
                 return { ...gameState, direction: chooseNextDirection(gameState.direction, action.direction) };
             case 'reset':
-                return initialGameState;
+                return {...initialGameState};
             default:
-                return gameState;
+                return {...gameState};
         }
     }, initialGameState);
 
+    useEffect(() => {
+        grid.current = updateGrid(grid.current, snakeState.snake, foods);
+    }, [snakeState, foods]);
+
     function isFoodCell({ x, y }) {
-        return foods.find(food => food?.x === x && food?.y === y);
+        return foods.find(food => food.x === x && food.y === y);
     }
 
     function isSnakeCell({ x, y }) {
@@ -53,7 +86,7 @@ function useSnakeGameLogic(config) {
 
     function getNextSnake(snake, direction) {
         const head = snake[0];
-        const newHead = getNextCell(head, direction, config);
+        const newHead = getNextCell(head, direction, height, width);
 
         const newSnake = [newHead, ...snake];
 
@@ -63,14 +96,6 @@ function useSnakeGameLogic(config) {
         }
 
         return newSnake;
-    }
-
-    function addFood(newFood) {
-        setFoods(foods => [...foods, newFood]);
-    }
-
-    const removeFoodIfExists = (foodToRemove) => {
-        setFoods((foods) => foods.filter(food => !(food.id === foodToRemove.id)));
     }
 
     // move the snake
@@ -105,29 +130,48 @@ function useSnakeGameLogic(config) {
         snakeStateDispatch({ type: 'changeDirection', direction: direction });
     }
 
-    useEffect(() => {
-        const createNewFood = () => {
-            let newFood = getRandomCell();
-            while (isSnakeCell(newFood) || isFoodCell(newFood)) {
-                newFood = getRandomCell();
-            }
+    return [snakeState.score, changeDirection, isFoodCell, isSnakeCell];
+}
 
-            newFood.id = foodId.current;
-            foodId.current += 1;
+function makeGrid(width, height) {
+    const grid = [];
 
-            setTimeout(() => removeFoodIfExists(newFood), config.foodLifetime);
-            addFood(newFood);
-        };
+    for (let x = 0; x < width; x++) {
+        const column = [];
 
-        createNewFood();
-        const foodGeneratorInterval = setInterval(createNewFood, config.foodGenerationInterval);
-
-        return () => {
-            clearInterval(foodGeneratorInterval);
+        for (let y = 0; y < height; y++) {
+            const emptyCell = {type: CellType.Empty};
+            column.push(emptyCell);
         }
-    }, []);
 
-    return [snakeState.snake, foods, snakeState.score, changeDirection, isFoodCell, isSnakeCell];
+        grid.push(column);
+    }
+
+    grid.width = width;
+    grid.height = height;
+
+    return grid;
+}
+
+function updateGrid(currentGrid, snake, foods) {
+    currentGrid = makeGrid(currentGrid.width, currentGrid.height);
+
+    snake.forEach(({x, y}) => {
+        currentGrid[x][y].type = CellType.Snake;
+    })
+
+    foods.forEach(({x, y}) => {
+        currentGrid[x][y].type = CellType.Food;
+    })
+
+    return currentGrid;
+}
+
+function getRandomCell(width, height) {
+    return {
+        x: Math.floor(Math.random() * width),
+        y: Math.floor(Math.random() * height),
+    }
 }
 
 export default useSnakeGameLogic;

@@ -7,27 +7,27 @@ import Direction from "../types/direction";
 import useSnakeGameLogic from "../hooks/useSnakeGameLogic";
 
 const Config = {
-  height: 25,
-  width: 25,
+  height: 3,
+  width: 6,
   cellSize: 32,
   foodGenerationInterval: 3000,
   foodLifetime: 10000,
 };
 
+const getDefaultSnake = () => [
+  { x: 1, y: 0 },
+  { x: 0, y: 0 }
+];
+
 const Snake = () => {
-  const [snake, foods, score, changeDirection, isFoodCell, isSnakeCell] = useSnakeGameLogic(Config);
+  const [score, changeDirection, isFoodCell, isSnakeCell] = useSnakeGameLogic(getDefaultSnake(), Config);
 
   useEffect(() => {
-    console.log(snake);
-    console.log(foods);
-  }, [snake, foods]);
-
-  useEffect(() => {
-    const navigationHander = handleNavigation(changeDirection);
-    window.addEventListener("keydown", navigationHander);
+    const navigationHandler = handleNavigation(changeDirection);
+    window.addEventListener("keydown", navigationHandler);
 
     return () => {
-      window.removeEventListener("keydown", navigationHander);
+      window.removeEventListener("keydown", navigationHandler);
     }
   }, []);
 
