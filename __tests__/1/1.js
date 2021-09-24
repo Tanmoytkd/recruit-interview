@@ -155,14 +155,14 @@ test("Exercise 3.2: given a person, return difference between female and male su
 });
 
 // do the same subordinateGenderDifference, but with using only 1 reduce function and nothing else
-const exercise32a = (person) => {
+const subordinateGenderDifferenceOnlyReduce = (person) => {
   return person.subordinates
       .reduce((sum, subordinate) => sum + ((subordinate.gender === 'female') ? 1 : -1), 0);
 };
 
 test("Exercise 3.2a: given a person, return difference between female and male subordinates", () => {
-  expect(exercise32a(CruzHarrell)).toEqual(2);
-  expect(exercise32a(RoxanneSimmons)).toEqual(1);
+  expect(subordinateGenderDifferenceOnlyReduce(CruzHarrell)).toEqual(2);
+  expect(subordinateGenderDifferenceOnlyReduce(RoxanneSimmons)).toEqual(1);
 });
 
 /*
@@ -261,7 +261,7 @@ test("Example 5: return total number of people in the dataset", () => {
 });
 
 // given a color, return number of people who have that eye color
-const exercise51 = (color) => {
+const countPeopleWithEyeColor = (color) => {
   const getTotalPeopleWithEyeColor = (person) =>
       (person.eyeColor === color ? 1 : 0) +
       person.subordinates
@@ -272,7 +272,7 @@ const exercise51 = (color) => {
 };
 
 test("Exercise 5.1: given a color, return number of people who have that eye color", () => {
-  expect(exercise51("green")).toEqual(11);
+  expect(countPeopleWithEyeColor("green")).toEqual(11);
 });
 
 const distance = (location1, location2) =>
@@ -290,7 +290,7 @@ test("distance: given two locations, return the distance between them", () => {
 });
 
 // given maxDistance, return number of employees who lives within maxDistance distance of their managers
-const exercise52 = (maxDistance) => {
+const countEmployeesLivingCloseToManager = (maxDistance) => {
   const getTotalCloseSubordinates = (person) => {
     const closeEmployees = person.subordinates
         .filter((subordinate) => distance(person.location, subordinate.location) <= maxDistance)
@@ -306,13 +306,13 @@ const exercise52 = (maxDistance) => {
 };
 
 test("Exercise 5.2: given maxDistance, return number of employees who lives within maxDistance distance of their managers", () => {
-  expect(exercise52(5)).toEqual(25);
-  expect(exercise52(10)).toEqual(81);
+  expect(countEmployeesLivingCloseToManager(5)).toEqual(25);
+  expect(countEmployeesLivingCloseToManager(10)).toEqual(81);
 });
 
 // return first name (not full name) of all person who has the same company as their manager
 // hint: findCompanyFromEmail
-const exercise53 = () => {
+const sameCompanySubordinateFirstNames = () => {
   const getFirstName = (person) => person.name.split(' ')[0];
   const getCompany = (person) => findCompanyFromEmail(person.email);
 
@@ -332,5 +332,5 @@ const exercise53 = () => {
 };
 
 test("Exercise 5.3: return first name (not full name) of all person who has the same company as their manager", () => {
-  expect(exercise53()).toEqual(["Suzanne", "Gregory", "Buchanan"]);
+  expect(sameCompanySubordinateFirstNames()).toEqual(["Suzanne", "Gregory", "Buchanan"]);
 });

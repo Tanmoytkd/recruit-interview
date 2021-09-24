@@ -33,34 +33,6 @@ function useSnakeGameLogic(defaultSnake, { width, height, foodLifetime, foodGene
         grid.current = updateGrid(grid.current, snakeState.snake, foods);
     }, [snakeState, foods]);
 
-    function isFoodCell({ x, y }) {
-        return foods.find(food => food.x === x && food.y === y);
-    }
-
-    function isSnakeCell({ x, y }) {
-        return snakeState.snake.find((position) => position.x === x && position.y === y);
-    }
-
-    function isInvalidSnake(snake) {
-        const head = snake[0];
-
-        return snake.slice(1).find((position) => position.x === head.x && position.y === head.y);
-    }
-
-    function getNextSnake(snake, direction) {
-        const head = snake[0];
-        const newHead = getNextCell(head, direction, height, width);
-
-        const newSnake = [newHead, ...snake];
-
-        // remove tail
-        if (!isFoodCell(newHead)) {
-            newSnake.pop();
-        }
-
-        return newSnake;
-    }
-
     // move the snake
     useEffect(() => {
         const runSingleStep = () => {
@@ -88,6 +60,33 @@ function useSnakeGameLogic(defaultSnake, { width, height, foodLifetime, foodGene
         }
 
     }, [snakeState.snake]);
+
+    function isFoodCell({ x, y }) {
+        return foods.some(food => food.x === x && food.y === y);
+    }
+
+    function isSnakeCell({ x, y }) {
+        return snakeState.snake.some((position) => position.x === x && position.y === y);
+    }
+
+    function isInvalidSnake(snake) {
+        const head = snake[0];
+        return snake.slice(1).some((position) => position.x === head.x && position.y === head.y);
+    }
+
+    function getNextSnake(snake, direction) {
+        const head = snake[0];
+        const newHead = getNextCell(head, direction, height, width);
+
+        const newSnake = [newHead, ...snake];
+
+        // remove tail
+        if (!isFoodCell(newHead)) {
+            newSnake.pop();
+        }
+
+        return newSnake;
+    }
 
     const changeDirection = (direction) => {
         snakeStateDispatch({ type: 'changeDirection', direction: direction });
