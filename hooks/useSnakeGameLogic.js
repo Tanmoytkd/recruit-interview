@@ -1,5 +1,5 @@
 import Direction, { chooseNextDirection, getNextCell } from "../types/direction";
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 
 function useSnakeGameLogic(config) {
     const getRandomCell = () => ({
@@ -20,6 +20,7 @@ function useSnakeGameLogic(config) {
     };
 
     const [foods, setFoods] = useState([]);
+    const foodId = useRef(0);
 
     const [snakeState, snakeStateDispatch] = useReducer((gameState, action) => {
         switch (action.type) {
@@ -69,7 +70,7 @@ function useSnakeGameLogic(config) {
     }
 
     const removeFoodIfExists = (foodToRemove) => {
-        setFoods((foods) => foods.filter(food => !(food.x === foodToRemove.x && food.y === foodToRemove.y)))
+        setFoods((foods) => foods.filter(food => !(food.id === foodToRemove.id)));
     }
 
     // move the snake
@@ -93,7 +94,9 @@ function useSnakeGameLogic(config) {
 
         } else if (isFoodCell(head)) {
             snakeStateDispatch({ type: 'increaseScore' });
-            removeFoodIfExists(head);
+
+            const foodToRemove = foods.find(food => food.x === head.x && food.y === head.y);
+            removeFoodIfExists(foodToRemove);
         }
 
     }, [snakeState.snake]);
@@ -108,6 +111,9 @@ function useSnakeGameLogic(config) {
             while (isSnakeCell(newFood) || isFoodCell(newFood)) {
                 newFood = getRandomCell();
             }
+
+            newFood.id = foodId.current;
+            foodId.current += 1;
 
             setTimeout(() => removeFoodIfExists(newFood), config.foodLifetime);
             addFood(newFood);

@@ -7,8 +7,8 @@ import Direction from "../types/direction";
 import useSnakeGameLogic from "../hooks/useSnakeGameLogic";
 
 const Config = {
-  height: 5,
-  width: 5,
+  height: 25,
+  width: 25,
   cellSize: 32,
   foodGenerationInterval: 3000,
   foodLifetime: 10000,
