@@ -1,153 +1,33 @@
 import dynamic from "next/dynamic";
-import { useEffect, useReducer, useState } from "react";
+import { useEffect } from "react";
 import styles from "../styles/Snake.module.css";
 import Cell from "../components/cell";
 import CellType from "../types/cellType";
-import Direction, { chooseNextDirection, getNextCell } from "../types/direction";
+import Direction from "../types/direction";
+import useSnakeGameLogic from "../hooks/useSnakeGameLogic";
 
 const Config = {
-  height: 10,
-  width: 25,
+  height: 5,
+  width: 5,
   cellSize: 32,
   foodGenerationInterval: 3000,
   foodLifetime: 10000,
 };
 
-const getRandomCell = () => ({
-  x: Math.floor(Math.random() * Config.width),
-  y: Math.floor(Math.random() * Config.height),
-});
-
 const Snake = () => {
-  const getDefaultSnake = () => [
-    { x: 2, y: 3 },
-    { x: 1, y: 3 },
-    { x: 0, y: 3 },
-  ];
-
-  const initialGameState = {
-    snake: getDefaultSnake(),
-    direction: Direction.Right,
-    score: 0
-  };
-
-  const [foods, setFoods] = useState([]);
-
-  const [snakeState, snakeStateDispatch] = useReducer((gameState, action) => {
-    switch (action.type) {
-      case 'moveSnake':
-        return { ...gameState, snake: getNextSnake(gameState.snake, gameState.direction) }
-      case 'increaseScore':
-        return { ...gameState, score: gameState.score + 1 };
-      case 'changeDirection':
-        return { ...gameState, direction: chooseNextDirection(gameState.direction, action.direction) };
-      case 'reset':
-        return initialGameState;
-      default:
-        return gameState;
-    }
-  }, initialGameState);
-
-  function isFoodCell ({ x, y }) {
-    return foods.find(food => food?.x === x && food?.y === y);
-  }
-
-  function isSnakeCell ({ x, y }) {
-    return snakeState.snake.find((position) => position.x === x && position.y === y);
-  }
-
-  function isInvalidSnake(snake) {
-    const head = snake[0];
-
-    return snake.slice(1).find((position) => position.x === head.x && position.y === head.y);
-  }
-
-  function getNextSnake (snake, direction) {
-    const head = snake[0];
-    const newHead = getNextCell(head, direction, Config);
-
-    const newSnake = [newHead, ...snake];
-
-    // remove tail
-    if (!isFoodCell(newHead)) {
-      newSnake.pop();
-    }
-
-    return newSnake;
-  }
-
-  function addFood(newFood) {
-    setFoods(foods => [...foods, newFood]);
-  }
-
-  const removeFoodIfExists = (foodToRemove) => {
-    setFoods((foods) => foods.filter(food => !(food.x === foodToRemove.x && food.y === foodToRemove.y)))
-  }
-
-  // move the snake
-  useEffect(() => {
-    const runSingleStep = () => {
-      snakeStateDispatch({ type: 'moveSnake' });
-    };
-
-    runSingleStep();
-    const timer = setInterval(runSingleStep, 500);
-
-    return () => clearInterval(timer);
-  }, [snakeState.direction]);
-
-  // update score whenever head touches a food
-  useEffect(() => {
-    const head = snakeState.snake[0];
-
-    if (isInvalidSnake(snakeState.snake)) {
-      snakeStateDispatch({ type: 'reset' });
-
-    } else if (isFoodCell(head)) {
-      snakeStateDispatch({ type: 'increaseScore' });
-      removeFoodIfExists(head);
-    }
-
-  }, [snakeState.snake]);
+  const [snake, foods, score, changeDirection, isFoodCell, isSnakeCell] = useSnakeGameLogic(Config);
 
   useEffect(() => {
-    const handleNavigation = (event) => {
-      switch (event.key) {
-        case "ArrowUp":
-          snakeStateDispatch({ type: 'changeDirection', direction: Direction.Top });
-          break;
+    console.log(snake);
+    console.log(foods);
+  }, [snake, foods]);
 
-        case "ArrowDown":
-          snakeStateDispatch({ type: 'changeDirection', direction: Direction.Bottom });
-          break;
-
-        case "ArrowLeft":
-          snakeStateDispatch({ type: 'changeDirection', direction: Direction.Left });
-          break;
-
-        case "ArrowRight":
-          snakeStateDispatch({ type: 'changeDirection', direction: Direction.Right });
-          break;
-      }
-    };
-    window.addEventListener("keydown", handleNavigation);
-
-    const createNewFood = () => {
-      let newFood = getRandomCell();
-      while (isSnakeCell(newFood) || isFoodCell(newFood)) {
-        newFood = getRandomCell();
-      }
-
-      setTimeout(() => removeFoodIfExists(newFood), Config.foodLifetime);
-      addFood(newFood);
-    };
-
-    createNewFood();
-    const foodGeneratorInterval = setInterval(createNewFood, Config.foodGenerationInterval);
+  useEffect(() => {
+    const navigationHander = handleNavigation(changeDirection);
+    window.addEventListener("keydown", navigationHander);
 
     return () => {
-      window.removeEventListener("keydown", handleNavigation);
-      clearInterval(foodGeneratorInterval);
+      window.removeEventListener("keydown", navigationHander);
     }
   }, []);
 
@@ -170,7 +50,7 @@ const Snake = () => {
         className={styles.header}
         style={{ width: Config.width * Config.cellSize }}
       >
-        Score: {snakeState.score}
+        Score: {score}
       </div>
       <div
         className={styles.grid}
@@ -184,6 +64,28 @@ const Snake = () => {
     </div>
   );
 };
+
+function handleNavigation(changeDirection) {
+  return (event) => {
+    switch (event.key) {
+      case "ArrowUp":
+        changeDirection(Direction.Top);
+        break;
+
+      case "ArrowDown":
+        changeDirection(Direction.Bottom);
+        break;
+
+      case "ArrowLeft":
+        changeDirection(Direction.Left);
+        break;
+
+      case "ArrowRight":
+        changeDirection(Direction.Right);
+        break;
+    }
+  }
+}
 
 export default dynamic(() => Promise.resolve(Snake), {
   ssr: false,
