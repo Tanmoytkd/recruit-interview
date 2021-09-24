@@ -1,47 +1,10 @@
 import Direction, { chooseNextDirection, getNextCell } from "../types/direction";
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useEffect, useReducer, useRef } from "react";
 import CellType from "../types/cellType";
+import useFoodGenerator from "./useFoodGenerator";
 
-function getCellType(grid, {x, y}) {
-    return grid.current[x][y].type;
-}
-
-function useFoodsLogic(grid, foodGenerationInterval, foodLifetime) {
-    const [foods, setFoods] = useState([]);
-    const foodId = useRef(0);
-
-    const removeFoodIfExists = (foodToRemove) => {
-        setFoods((foods) => foods.filter(food => !(food.id === foodToRemove.id)));
-    }
-
-    useEffect(() => {
-        const createNewFood = () => {
-            let newFood = getRandomCell(grid.current.width, grid.current.height);
-
-            while ([CellType.Food, CellType.Snake].includes(getCellType(grid, newFood))) {
-                newFood = getRandomCell(grid.current.width, grid.current.height);
-            }
-
-            newFood.id = foodId.current;
-            foodId.current += 1;
-
-            setTimeout(() => removeFoodIfExists(newFood), foodLifetime);
-            setFoods(foods => [...foods, newFood]);
-        };
-
-        createNewFood();
-        const foodGeneratorInterval = setInterval(createNewFood, foodGenerationInterval);
-
-        return () => {
-            clearInterval(foodGeneratorInterval);
-        }
-    }, []);
-
-    return [foods, removeFoodIfExists];
-}
-
-function useSnakeGameLogic(defaultSnake, {width, height, foodLifetime, foodGenerationInterval}) {
-    const initialGameState = {
+function useSnakeGameLogic(defaultSnake, { width, height, foodLifetime, foodGenerationInterval }) {
+    const initialSnakeState = {
         snake: defaultSnake,
         direction: Direction.Right,
         score: 0
@@ -49,22 +12,22 @@ function useSnakeGameLogic(defaultSnake, {width, height, foodLifetime, foodGener
 
     const grid = useRef(makeGrid(width, height));
 
-    const [foods, removeFoodIfExists] = useFoodsLogic(grid, foodGenerationInterval, foodLifetime);
+    const [foods, removeFoodIfExists] = useFoodGenerator(grid, foodGenerationInterval, foodLifetime);
 
-    const [snakeState, snakeStateDispatch] = useReducer((gameState, action) => {
+    const [snakeState, snakeStateDispatch] = useReducer((snakeState, action) => {
         switch (action.type) {
             case 'moveSnake':
-                return { ...gameState, snake: getNextSnake(gameState.snake, gameState.direction) }
+                return { ...snakeState, snake: getNextSnake(snakeState.snake, snakeState.direction) }
             case 'increaseScore':
-                return { ...gameState, score: gameState.score + 1 };
+                return { ...snakeState, score: snakeState.score + 1 };
             case 'changeDirection':
-                return { ...gameState, direction: chooseNextDirection(gameState.direction, action.direction) };
+                return { ...snakeState, direction: chooseNextDirection(snakeState.direction, action.direction) };
             case 'reset':
-                return {...initialGameState};
+                return initialSnakeState;
             default:
-                return {...gameState};
+                return snakeState;
         }
-    }, initialGameState);
+    }, initialSnakeState);
 
     useEffect(() => {
         grid.current = updateGrid(grid.current, snakeState.snake, foods);
@@ -140,7 +103,7 @@ function makeGrid(width, height) {
         const column = [];
 
         for (let y = 0; y < height; y++) {
-            const emptyCell = {type: CellType.Empty};
+            const emptyCell = { type: CellType.Empty };
             column.push(emptyCell);
         }
 
@@ -156,22 +119,15 @@ function makeGrid(width, height) {
 function updateGrid(currentGrid, snake, foods) {
     currentGrid = makeGrid(currentGrid.width, currentGrid.height);
 
-    snake.forEach(({x, y}) => {
+    snake.forEach(({ x, y }) => {
         currentGrid[x][y].type = CellType.Snake;
     })
 
-    foods.forEach(({x, y}) => {
+    foods.forEach(({ x, y }) => {
         currentGrid[x][y].type = CellType.Food;
     })
 
     return currentGrid;
-}
-
-function getRandomCell(width, height) {
-    return {
-        x: Math.floor(Math.random() * width),
-        y: Math.floor(Math.random() * height),
-    }
 }
 
 export default useSnakeGameLogic;
