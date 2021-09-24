@@ -6,21 +6,23 @@ import CellType from "../types/cellType";
 import Direction, { chooseNextDirection, getNextCell } from "../types/direction";
 
 const Config = {
-  height: 25,
+  height: 10,
   width: 25,
   cellSize: 32,
+  foodGenerationInterval: 3000,
+  foodLifetime: 10000,
 };
 
 const getRandomCell = () => ({
   x: Math.floor(Math.random() * Config.width),
-  y: Math.floor(Math.random() * Config.width),
+  y: Math.floor(Math.random() * Config.height),
 });
 
 const Snake = () => {
   const getDefaultSnake = () => [
-    { x: 8, y: 12 },
-    { x: 7, y: 12 },
-    { x: 6, y: 12 },
+    { x: 2, y: 3 },
+    { x: 1, y: 3 },
+    { x: 0, y: 3 },
   ];
 
   const initialGameState = {
@@ -136,12 +138,12 @@ const Snake = () => {
         newFood = getRandomCell();
       }
 
-      setTimeout(() => removeFoodIfExists(newFood), 10000);
+      setTimeout(() => removeFoodIfExists(newFood), Config.foodLifetime);
       addFood(newFood);
     };
 
     createNewFood();
-    const foodGeneratorInterval = setInterval(createNewFood, 3000);
+    const foodGeneratorInterval = setInterval(createNewFood, Config.foodGenerationInterval);
 
     return () => {
       window.removeEventListener("keydown", handleNavigation);
